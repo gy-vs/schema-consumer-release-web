@@ -313,6 +313,19 @@ export function canonicalize(value: unknown): string {
   return JSON.stringify(value);
 }
 
+// Short stable fingerprint for correlating "which submitted content does this
+// result belong to" across the UI and the server. FNV-1a over the canonical
+// form; correlation-only, not a security primitive.
+export function fingerprint(value: unknown): string {
+  const text = canonicalize(value);
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
 // Pick a discriminator value that is unused by either branch map.
 export function freshUnknownValue(values: ReadonlySet<string>): string {
   let candidate = '__unknown__';
