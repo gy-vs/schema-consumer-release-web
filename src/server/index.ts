@@ -2,6 +2,7 @@ import express from 'express';
 import {fileURLToPath} from 'node:url';
 import {BadSchemaError, compareInput} from './compat';
 import {presets} from '../shared/presets';
+import {releaseRouter, ReleaseStore} from './release-routes';
 
 type RecordRow = {id:string;name:string;revision:number;content:string;updatedAt:string};
 const rows: RecordRow[] = [
@@ -9,8 +10,9 @@ const rows: RecordRow[] = [
   {id:'beta',name:'Secondary schema revisions',revision:5,content:'schema revisions: beta\nstate: review',updatedAt:new Date(1000).toISOString()},
 ];
 
-export function createApp(){
+export function createApp(options?:{releaseStore?:ReleaseStore}){
   const app=express();
+  const releaseStore=options?.releaseStore??new ReleaseStore();
   app.use(express.json({limit:'1mb'}));
   app.get('/api/bootstrap',(_req,res)=>res.json({family:"schema-evolution",count:rows.length}));
   app.get('/api/schemas',(_req,res)=>res.json(rows.map(({content,...row})=>row)));
@@ -39,6 +41,8 @@ export function createApp(){
       throw error;
     }
   });
+
+  app.use('/api/release',releaseRouter(releaseStore));
   return app;
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)){createApp().listen(4174,'127.0.0.1',()=>console.log('server http://127.0.0.1:4174'))}
